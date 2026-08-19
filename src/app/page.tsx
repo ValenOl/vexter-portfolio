@@ -1,69 +1,126 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { askFiscalAssistantAction, continueFiscalAssistantAction } from './actions/fiscal-assistant'
+import type { FiscalOutcome, SerializedState } from '@/lib/ai/fiscal-assistant'
+
+// UI mínima (task 3.4): input de pregunta, muestra respuesta + fecha de
+// corte, o el paso de clarificación si el agente pausó con askUser --
+// mismo espíritu que el wizard de EmissionForm.tsx en Vexter, pero sin
+// los pasos de facturación (acá no hay nada que emitir).
+
+type WizardState =
+  | { step: 'pregunta' }
+  | { step: 'clarify'; question: string; toolCallId: string; state: SerializedState }
+  | { step: 'resultado'; outcome: FiscalOutcome }
 
 export default function Home() {
+  const [wizard, setWizard] = useState<WizardState>({ step: 'pregunta' })
+  const [pregunta, setPregunta] = useState('')
+  const [respuestaClarify, setRespuestaClarify] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handlePreguntar() {
+    if (!pregunta.trim()) return
+    setLoading(true)
+    const outcome = await askFiscalAssistantAction(pregunta)
+    setLoading(false)
+
+    if (outcome.status === 'needs_input') {
+      setWizard({ step: 'clarify', question: outcome.question, toolCallId: outcome.toolCallId, state: outcome.state })
+    } else {
+      setWizard({ step: 'resultado', outcome })
+    }
+  }
+
+  async function handleResponderClarify() {
+    if (wizard.step !== 'clarify' || !respuestaClarify.trim()) return
+    setLoading(true)
+    const outcome = await continueFiscalAssistantAction(wizard.state, wizard.toolCallId, respuestaClarify)
+    setLoading(false)
+    setRespuestaClarify('')
+
+    if (outcome.status === 'needs_input') {
+      setWizard({ step: 'clarify', question: outcome.question, toolCallId: outcome.toolCallId, state: outcome.state })
+    } else {
+      setWizard({ step: 'resultado', outcome })
+    }
+  }
+
+  function handleReiniciar() {
+    setPregunta('')
+    setRespuestaClarify('')
+    setWizard({ step: 'pregunta' })
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-16 font-sans">
+      <div>
+        <h1 className="text-2xl font-semibold">Asistente fiscal — Monotributo</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Portfolio piece — respuestas grounded en un corpus curado, no un asesor real. Ante dudas reales, consultá con
+          un contador.
+        </p>
+      </div>
+
+      {wizard.step === 'pregunta' && (
+        <div className="flex flex-col gap-3">
+          <textarea
+            className="min-h-24 rounded border border-gray-300 p-3"
+            placeholder="Ej: ¿qué es una factura C?"
+            value={pregunta}
+            onChange={(e) => setPregunta(e.target.value)}
+          />
+          <button
+            className="self-start rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+            onClick={handlePreguntar}
+            disabled={loading || !pregunta.trim()}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {loading ? 'Consultando…' : 'Preguntar'}
+          </button>
         </div>
-      </main>
-    </div>
-  );
+      )}
+
+      {wizard.step === 'clarify' && (
+        <div className="flex flex-col gap-3 rounded border border-amber-300 bg-amber-50 p-4">
+          <p className="font-medium">{wizard.question}</p>
+          <input
+            className="rounded border border-gray-300 p-2"
+            value={respuestaClarify}
+            onChange={(e) => setRespuestaClarify(e.target.value)}
+            placeholder="Tu respuesta"
+          />
+          <button
+            className="self-start rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+            onClick={handleResponderClarify}
+            disabled={loading || !respuestaClarify.trim()}
+          >
+            {loading ? 'Enviando…' : 'Responder'}
+          </button>
+        </div>
+      )}
+
+      {wizard.step === 'resultado' && (
+        <div className="flex flex-col gap-3">
+          {wizard.outcome.status === 'sin_fuente' && (
+            <p className="rounded border border-gray-300 p-4 text-gray-700">
+              No tengo información verificada sobre esa pregunta en mi corpus curado. Consultá con un contador.
+            </p>
+          )}
+          {wizard.outcome.status === 'done' && (
+            <div className="rounded border border-gray-300 p-4">
+              <p>{wizard.outcome.respuesta}</p>
+              <p className="mt-3 text-xs text-gray-500">
+                Fuentes: {wizard.outcome.fuentesUsadas.join(', ') || '—'} · Corpus verificado al{' '}
+                {wizard.outcome.fechaCorte}
+              </p>
+            </div>
+          )}
+          <button className="self-start text-sm text-gray-500 underline" onClick={handleReiniciar}>
+            Hacer otra pregunta
+          </button>
+        </div>
+      )}
+    </main>
+  )
 }

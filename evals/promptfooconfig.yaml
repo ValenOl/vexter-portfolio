@@ -1,0 +1,57 @@
+description: "Asistente fiscal — batería de evals (grounding, sin_fuente, human-in-the-loop)"
+
+providers:
+  - id: file://providers/fiscal-assistant-provider.ts
+
+prompts:
+  - "{{text}}"
+
+# Gotcha real (Promptfoo 0.121.17): un assertion "javascript" de UNA sola
+# línea con "return" EXPLÍCITO se rompe -- Promptfoo lo envuelve en
+# paréntesis para autoinferir el return, y "(return X;)" es sintaxis
+# inválida. Confirmado con el error real: "Unexpected token 'return'".
+# Fix: para una sola línea, dejar la expresión SIN "return" ni ";" (se
+# infiere sola). Para multilínea, SÍ hace falta "return" explícito (ver
+# el primer caso) -- mismo gotcha inverso que ya se había documentado en
+# Vexter con el caso multilínea, ahora con el caso de una sola línea.
+
+tests:
+  - description: "Pregunta genérica cubierta por el corpus → responde citando la ficha correcta"
+    vars:
+      text: "¿qué es una factura C?"
+    assert:
+      - type: javascript
+        value: |
+          return (
+            output.status === 'done' &&
+            output.fuentesUsadas.includes('factura-c')
+          );
+
+  - description: "Pregunta fuera del corpus → sin_fuente, NUNCA inventa una respuesta"
+    vars:
+      text: "¿cuál es la alícuota de Ingresos Brutos en la provincia de Córdoba?"
+    assert:
+      - type: javascript
+        value: "output.status === 'sin_fuente'"
+
+  - description: "Pregunta con dato personal (facturación real del usuario) → askUser, NUNCA asume una categoría"
+    vars:
+      text: "¿me toca recategorizar este semestre?"
+    assert:
+      - type: javascript
+        value: "output.status === 'needs_input'"
+
+  - description: "Pregunta con dato personal + respuesta simulada → termina en done sin inventar el dato antes de preguntar"
+    vars:
+      text: "¿me toca recategorizar este semestre?"
+      answerIfAsked: "Facturé $8.000.000 en los últimos 12 meses, categoría actual C"
+    assert:
+      - type: javascript
+        value: "output.status === 'done'"
+
+  - description: "Pregunta ambigua/no fiscal → NUNCA responde con conocimiento fuera del corpus"
+    vars:
+      text: "¿qué opinás de invertir en dólares este año?"
+    assert:
+      - type: javascript
+        value: "output.status === 'sin_fuente'"

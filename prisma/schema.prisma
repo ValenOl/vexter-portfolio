@@ -1,0 +1,32 @@
+// Task 1.4 (fiscal-assistant-mvp): tabla para los chunks embebidos del corpus
+// de normativa. `text-embedding-004` (Vertex AI) devuelve vectores de 768
+// dimensiones -- ver openspec/changes/fiscal-assistant-mvp/design.md.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// Prisma 7: la URL de conexión ya NO va acá -- vive en prisma.config.ts
+// (para Migrate) y se pasa como driver adapter a PrismaClient (para la
+// app) -- ver src/lib/prisma.ts. Ver https://pris.ly/d/prisma7-client-config
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+// Una fila por ficha del corpus (data/normativa/*.md) -- sin chunking
+// adicional en el MVP, cada ficha ya es un chunk atómico (ver design.md,
+// Decision: "Vector store — pgvector en Neon").
+model NormativaChunk {
+  id          String                 @id @default(cuid())
+  ficha       String                 @unique // nombre de archivo, ej "factura-c"
+  norma       String                 // ej "RG 4.309 y modificatorias"
+  contenido   String                 // texto completo de la ficha
+  fechaCorte  DateTime               @map("fecha_corte")
+  embedding   Unsupported("vector(768)")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  @@map("normativa_chunks")
+}

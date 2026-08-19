@@ -1,0 +1,35 @@
+schema: spec-driven
+
+context: |
+  Proyecto greenfield (sin código todavía). Stack objetivo: Next.js + TypeScript,
+  Vercel AI SDK (mismo patrón que Vexter: tool calling, human-in-the-loop),
+  Google Gemini vía GCP (presupuesto $10, tier gratis) como modelo principal,
+  RAG/embeddings para grounding, Promptfoo para evals + redteam (OWASP Agentic
+  Top 10 2026). Dominio: asesoría fiscal informativa para monotributistas
+  argentinos (sin datos transaccionales/sensibles). Objetivo: portfolio para
+  búsqueda laboral en roles de AI Evals + Agent Security.
+
+rules:
+  proposal:
+    - Incluir plan de rollback para cambios riesgosos
+    - Identificar módulos/paquetes afectados
+  specs:
+    - Formato Given/When/Then para escenarios
+    - Palabras clave RFC 2119 (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Diagramas de secuencia para flujos con tool calling / human-in-the-loop
+    - Documentar decisiones de arquitectura con su razón (rationale)
+  tasks:
+    - Agrupar por fase (infraestructura, implementación, testing, evals, security)
+    - Numeración jerárquica (1.1, 1.2, etc.)
+    - Tareas chicas, completables en una sesión
+  apply:
+    - Seguir los patrones ya validados en Vexter (prompt compartido entre app
+      y evals, tools con closure de scope/tenant, askUser sin execute)
+    - Cargar los skills relevantes del proyecto antes de escribir código
+  verify:
+    - Correr tests si existe infraestructura de testing
+    - Comparar la implementación contra cada escenario del spec
+    - Correr evals + redteam antes de dar una feature por cerrada
+  archive:
+    - Avisar antes de mergear deltas destructivos (borrados grandes)
