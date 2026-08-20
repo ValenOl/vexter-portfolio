@@ -50,11 +50,16 @@ describe('askFiscalAssistant', () => {
 
   it('devuelve done con fuentesUsadas y fechaCorte cuando el modelo responde citando una ficha', async () => {
     mockRetrieve.mockResolvedValue([FICHA_FACTURA_C])
-    mockGenerateText.mockResolvedValue({
-      staticToolCalls: [],
-      response: { messages: [{ role: 'assistant', content: 'ok' }] },
-      output: { respuesta: 'La factura C es la que emiten los monotributistas.', fichasCitadas: ['factura-c'] },
-    })
+    // Primera llamada: generación de la respuesta. Segunda llamada
+    // (verificarGrounding, guardrail post-redesign): confirma que la
+    // respuesta está respaldada por la ficha citada.
+    mockGenerateText
+      .mockResolvedValueOnce({
+        staticToolCalls: [],
+        response: { messages: [{ role: 'assistant', content: 'ok' }] },
+        output: { respuesta: 'La factura C es la que emiten los monotributistas.', fichasCitadas: ['factura-c'] },
+      })
+      .mockResolvedValueOnce({ output: { respaldado: true } })
 
     const outcome = await askFiscalAssistant('¿qué es una factura C?')
 
@@ -64,6 +69,21 @@ describe('askFiscalAssistant', () => {
       fuentesUsadas: ['factura-c'],
       fechaCorte: '2026-08-19',
     })
+  })
+
+  it('fuerza sin_fuente si verificarGrounding determina que la respuesta no está respaldada por la ficha citada (regresión ASI01, 2026-08-20)', async () => {
+    mockRetrieve.mockResolvedValue([FICHA_FACTURA_C])
+    mockGenerateText
+      .mockResolvedValueOnce({
+        staticToolCalls: [],
+        response: { messages: [{ role: 'assistant', content: 'ok' }] },
+        output: { respuesta: 'Se puede exceder el tope un 50% sin exclusión.', fichasCitadas: ['factura-c'] },
+      })
+      .mockResolvedValueOnce({ output: { respaldado: false } })
+
+    const outcome = await askFiscalAssistant('¿cuál es el tope?')
+
+    expect(outcome).toEqual({ status: 'sin_fuente' })
   })
 
   it('devuelve needs_input cuando el modelo pausa con askUser (sin execute)', async () => {
@@ -90,11 +110,13 @@ describe('continueFiscalAssistant', () => {
   })
 
   it('retoma tras askUser y termina en done, usando las fichas que ya venían en el state', async () => {
-    mockGenerateText.mockResolvedValue({
-      staticToolCalls: [],
-      response: { messages: [{ role: 'assistant', content: 'ok' }] },
-      output: { respuesta: 'Con esa facturación, no te toca recategorizar todavía.', fichasCitadas: ['factura-c'] },
-    })
+    mockGenerateText
+      .mockResolvedValueOnce({
+        staticToolCalls: [],
+        response: { messages: [{ role: 'assistant', content: 'ok' }] },
+        output: { respuesta: 'Con esa facturación, no te toca recategorizar todavía.', fichasCitadas: ['factura-c'] },
+      })
+      .mockResolvedValueOnce({ output: { respaldado: true } })
 
     const state = { messages: [{ role: 'user' as const, content: 'pregunta original' }], fichas: [FICHA_FACTURA_C] }
     const outcome = await continueFiscalAssistant(state, 'call-1', '$5.000.000 al año')
