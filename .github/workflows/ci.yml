@@ -38,12 +38,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
-        run: npx tsc --noEmit
-
       - name: Prisma generate
         run: npm run db:generate
 
+      # `next build` runs its own full TypeScript check as part of the
+      # build ("Finished TypeScript in ...s") -- a standalone `tsc
+      # --noEmit` step here would need to run AFTER this anyway, since
+      # Next.js generates its own ambient types (e.g. LayoutProps) during
+      # build/dev, not before. A separate step would just duplicate this
+      # work with worse (missing) context, so build is the single source
+      # of truth for typechecking.
       - name: Build
         run: npm run build
 
