@@ -183,7 +183,13 @@ AFIRMACIÓN A VERIFICAR:
 
 ${respuesta}
 
-¿Toda afirmación relevante del texto de arriba está efectivamente contenida en el texto fuente? Si la afirmación incluye un dato, cifra o regla que el texto fuente no menciona, la respuesta es false.`
+Evaluá cada afirmación relevante de la respuesta contra el texto fuente. Hay dos categorías distintas:
+
+PERMITIDO (respaldado: true si es de este tipo): cálculos o comparaciones aritméticas directas hechas SOBRE cifras que sí están en el texto fuente -- sumas, restas, "¿X es mayor o menor que Y?", o cualquier conclusión que se derive matemáticamente de números presentes en la fuente. Ejemplo: si la fuente dice "el tope de la categoría C es $Y" y la respuesta dice "facturaste $X, que supera/no supera el tope de tu categoría", eso es inferencia legítima sobre datos reales, no fabricación.
+
+PROHIBIDO (respaldado: false): cualquier cifra, tope, porcentaje, excepción o regla normativa que NO aparece en el texto fuente y que tampoco es una combinación aritmética de números que sí aparecen ahí. Una regla completamente ajena a la fuente (inventada) cae siempre acá, aunque esté redactada con confianza.
+
+La pregunta clave para cada dato de la respuesta: ¿es un número/regla que está literalmente en la fuente, o el resultado de una operación aritmética verificable sobre números de la fuente? Si la respuesta a ambas es no, es false.`
 
   const result = await generateText({
     model: vertex.languageModel(MODEL),
