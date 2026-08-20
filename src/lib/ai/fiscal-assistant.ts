@@ -1,7 +1,7 @@
 import type { ModelMessage } from 'ai'
 import { z } from 'zod'
 import { retrieveNormativa, type NormativaMatch } from '@/lib/rag/retrieve'
-import { vertex } from '@/lib/ai/vertex-client'
+import { vertex } from './vertex-client'
 
 // Motor del asistente fiscal — mismo patrón que src/lib/ai/invoice-extraction.ts
 // de Vexter: función pura (sin "use server"), tools tipadas, askUser sin

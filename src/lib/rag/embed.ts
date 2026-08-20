@@ -1,5 +1,5 @@
 import { embed, embedMany } from 'ai'
-import { vertex } from '@/lib/ai/vertex-client'
+import { vertex } from '../ai/vertex-client'
 
 // Wrapper de text-embedding-004 vía Vertex AI (cuenta de servicio con IAM
 // scopeado -- roles/aiplatform.user, ver design.md).
