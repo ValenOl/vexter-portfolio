@@ -1,15 +1,8 @@
-import { createVertex } from '@ai-sdk/google-vertex'
 import { embed, embedMany } from 'ai'
+import { vertex } from '@/lib/ai/vertex-client'
 
 // Wrapper de text-embedding-004 vía Vertex AI (cuenta de servicio con IAM
-// scopeado -- roles/aiplatform.user, ver design.md). Se resuelve
-// GOOGLE_APPLICATION_CREDENTIALS/GOOGLE_VERTEX_PROJECT/GOOGLE_VERTEX_LOCATION
-// del entorno automáticamente vía el SDK oficial de Google -- no se pasan
-// keys sueltas acá.
-const vertex = createVertex({
-  project: process.env.GOOGLE_VERTEX_PROJECT,
-  location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
-})
+// scopeado -- roles/aiplatform.user, ver design.md).
 
 // 768 dimensiones -- ver prisma/schema.prisma (Unsupported("vector(768)")).
 const embeddingModel = vertex.embeddingModel('text-embedding-004')

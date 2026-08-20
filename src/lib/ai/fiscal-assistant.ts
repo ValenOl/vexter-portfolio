@@ -1,16 +1,11 @@
-import { createVertex } from '@ai-sdk/google-vertex'
 import type { ModelMessage } from 'ai'
 import { z } from 'zod'
 import { retrieveNormativa, type NormativaMatch } from '@/lib/rag/retrieve'
+import { vertex } from '@/lib/ai/vertex-client'
 
 // Motor del asistente fiscal — mismo patrón que src/lib/ai/invoice-extraction.ts
 // de Vexter: función pura (sin "use server"), tools tipadas, askUser sin
 // execute, prompt compartido entre app y evals. Ver design.md.
-
-const vertex = createVertex({
-  project: process.env.GOOGLE_VERTEX_PROJECT,
-  location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
-})
 
 // gemini-2.0-flash (la decisión original del design) NO está disponible en
 // este proyecto/región -- confirmado corriendo una llamada real, no
