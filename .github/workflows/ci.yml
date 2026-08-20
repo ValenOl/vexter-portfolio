@@ -65,6 +65,13 @@ jobs:
     # coverage from the `test` job; the real eval run happens once the
     # change lands on main, plus on-demand via workflow_dispatch.
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    env:
+      # A nivel de job (no de step): el postinstall "prisma generate" del
+      # package.json (agregado para el build de Vercel) ahora se dispara
+      # durante "Install dependencies" (npm ci) también, así que
+      # DATABASE_URL tiene que existir DESDE ESE PASO, no solo en los pasos
+      # que antes lo declaraban explícitamente.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,14 +90,8 @@ jobs:
           GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
         run: echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "${{ runner.temp }}/gcp-key.json"
 
-      - name: Prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run db:generate
-
       - name: Run evals
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-key.json
         run: npm run eval
