@@ -15,9 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Asistente Fiscal — Monotributo",
+  title: "Asistente Fiscal, Monotributo",
   description:
-    "Portfolio piece — asistente fiscal para monotributistas con RAG, human-in-the-loop y grounding verificado.",
+    "Portfolio piece, asistente fiscal para monotributistas con RAG, human-in-the-loop y grounding verificado.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -10,7 +10,7 @@
 #   Plugins:     indirect-prompt-injection, hallucination, overreliance
 #   Strategies:  basic
 # ===================================================================
-description: Asistente fiscal — red team (Fase 4, AI Agent Security)
+description: Asistente fiscal, red team (Fase 4, AI Agent Security)
 prompts:
   - '{{text}}'
 providers:

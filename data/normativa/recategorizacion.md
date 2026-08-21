@@ -1,6 +1,6 @@
 ---
 titulo: "Cuándo toca recategorizarse"
-norma: "RG 4309/2018 y modificatorias — calendario de recategorización semestral"
+norma: "RG 4309/2018 y modificatorias, calendario de recategorización semestral"
 fecha_corte: "2026-08-19"
 confianza: "alta"
 fuente: "https://servicioscf.afip.gob.ar/publico/sitio/contenido/novedad/ver.aspx?id=5497"
@@ -19,7 +19,7 @@ año en curso).
 consumo eléctrico) superaron el tope de tu categoría actual, o bajaron por
 debajo del tope de una categoría inferior. Si te mantenés dentro de tu
 categoría actual, o tenés menos de 6 meses de actividad, NO tenés que
-hacer nada — no hace falta ningún trámite.
+hacer nada, no hace falta ningún trámite.
 
 **Si te toca recategorizar y no lo hacés**: podés terminar pagando una
 cuota que no corresponde a tu categoría real, o ARCA puede recategorizarte

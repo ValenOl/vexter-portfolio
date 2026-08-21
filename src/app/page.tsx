@@ -149,7 +149,7 @@ const ABOUT_POINTS = [
   },
   {
     label: 'Human-in-the-loop',
-    detail: 'El asistente nunca asume un dato personal (categoría, facturación real) — siempre lo pregunta antes de responder.',
+    detail: 'El asistente nunca asume un dato personal (categoría, facturación real), siempre lo pregunta antes de responder.',
   },
   {
     label: 'Redteam de seguridad real',
@@ -184,7 +184,7 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-start gap-2.5 p-3">
           <IconInfo />
           <p className="flex-1 text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
-            Portfolio piece — respuestas grounded en un corpus curado, no un asesor real. Ante dudas reales, consultá con
+            Portfolio piece, respuestas grounded en un corpus curado, no un asesor real. Ante dudas reales, consultá con
             un contador.
           </p>
           <button
@@ -209,7 +209,7 @@ function Shell({ children }: { children: ReactNode }) {
             >
               <div className="flex flex-col gap-3 border-t border-[var(--border)] p-4">
                 <p className="text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
-                  Pieza de portfolio para mostrar cómo diseño e implemento agentes de IA en producción — no solo que
+                  Pieza de portfolio para mostrar cómo diseño e implemento agentes de IA en producción, no solo que
                   &quot;responden&quot;, sino que son verificables y seguros:
                 </p>
                 <ul className="flex flex-col gap-2">
@@ -357,7 +357,7 @@ export default function Home() {
 
               <p className="text-lg leading-snug font-semibold text-[var(--fg)]">{wizard.question}</p>
               <p className="max-w-[440px] text-[13.5px] leading-relaxed text-[color:var(--fg-muted)]">
-                No asumimos tu categoría ni tu facturación — necesitamos que la confirmes vos antes de responder.
+                No asumimos tu categoría ni tu facturación, necesitamos que la confirmes vos antes de responder.
               </p>
 
               <div className="mt-1 flex gap-2.5">
@@ -439,7 +439,7 @@ export default function Home() {
                         </span>
                       ))
                     ) : (
-                      <span className="font-mono text-xs text-[color:var(--fg-muted)]">—</span>
+                      <span className="font-mono text-xs text-[color:var(--fg-muted)]">-</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-[color:var(--green-fg)]">

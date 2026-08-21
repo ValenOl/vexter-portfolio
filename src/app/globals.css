@@ -29,7 +29,7 @@ body {
   font-family: var(--font-plex-sans), system-ui, sans-serif;
 }
 
-/* Fondo "aurora" — dos blobs de color muy sutiles que respiran lento, para
+/* Fondo "aurora", dos blobs de color muy sutiles que respiran lento, para
    dar peso visual sin distraer de la lectura. */
 .bg-aurora {
   position: fixed;

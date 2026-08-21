@@ -1,6 +1,6 @@
 ---
 titulo: "Monotributo Social: en qué se diferencia del común"
-norma: "Régimen de Monotributo Social — gestión conjunta ARCA/ANSES/Min. Capital Humano"
+norma: "Régimen de Monotributo Social, gestión conjunta ARCA/ANSES/Min. Capital Humano"
 fecha_corte: "2026-08-19"
 confianza: "alta"
 fuente: "https://www.afip.gob.ar/monotributo/ayuda/tipos-de-monotributo.asp"
@@ -24,7 +24,7 @@ social.
 
 **Importante**: la inscripción y el cumplimiento de requisitos sociales
 los gestiona ANSES/Ministerio de Capital Humano, mientras que la parte
-impositiva (CUIT, categoría, facturación) vive en ARCA — son dos
+impositiva (CUIT, categoría, facturación) vive en ARCA, son dos
 trámites distintos, no uno solo. Si alguien pregunta si califica, es un
-caso claro de derivar a consulta humana — depende de su situación
+caso claro de derivar a consulta humana, depende de su situación
 personal completa, no solo de un dato.

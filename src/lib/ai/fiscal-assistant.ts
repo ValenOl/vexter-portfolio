@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { retrieveNormativa, type NormativaMatch } from '@/lib/rag/retrieve'
 import { vertex } from './vertex-client'
 
-// Motor del asistente fiscal — mismo patrón que src/lib/ai/invoice-extraction.ts
+// Motor del asistente fiscal, mismo patrón que src/lib/ai/invoice-extraction.ts
 // de Vexter: función pura (sin "use server"), tools tipadas, askUser sin
 // execute, prompt compartido entre app y evals. Ver design.md.
 
@@ -19,7 +19,7 @@ export type AskUserOption = { label: string; value: string }
 // por separado, ni de re-correr el retrieval al retomar.
 export type SerializedState = { messages: ModelMessage[]; fichas: NormativaMatch[] }
 
-// Unión discriminada por "status" — igual razón que ParseOutcome en Vexter:
+// Unión discriminada por "status", igual razón que ParseOutcome en Vexter:
 // el caso 'sin_fuente' es una rama DISTINTA de 'done', no un 'done' con
 // respuesta vacía, para que sea imposible confundir "no hay info" con "el
 // modelo respondió algo".
@@ -47,7 +47,7 @@ async function createFiscalAssistantTools() {
 
   const askUserTool = tool({
     description:
-      'Preguntale al humano un dato personal suyo (su categoría real, su facturación real, su domicilio fiscal) que el sistema no tiene y que es imprescindible para responder correctamente. NUNCA uses esto para preguntas genéricas que ya están cubiertas por las fuentes provistas — para esas, respondé directo.',
+      'Preguntale al humano un dato personal suyo (su categoría real, su facturación real, su domicilio fiscal) que el sistema no tiene y que es imprescindible para responder correctamente. NUNCA uses esto para preguntas genéricas que ya están cubiertas por las fuentes provistas, para esas, respondé directo.',
     inputSchema: z.object({
       question: z.string().describe('Pregunta puntual para el humano, en español, clara y corta.'),
     }),

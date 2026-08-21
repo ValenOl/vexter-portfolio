@@ -17,7 +17,7 @@ datasource db {
 
 // Una fila por ficha del corpus (data/normativa/*.md) -- sin chunking
 // adicional en el MVP, cada ficha ya es un chunk atómico (ver design.md,
-// Decision: "Vector store — pgvector en Neon").
+// Decision: "Vector store, pgvector en Neon").
 model NormativaChunk {
   id          String                 @id @default(cuid())
   ficha       String                 @unique // nombre de archivo, ej "factura-c"

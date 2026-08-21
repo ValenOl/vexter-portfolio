@@ -1,4 +1,4 @@
-# Evals — Asistente Fiscal
+# Evals, Asistente Fiscal
 
 ## Cómo correrlos localmente
 
@@ -33,10 +33,10 @@ Para que el job `evals` pase, hay que cargar estos tres secrets en
 | --- | --- |
 | `DATABASE_URL` | Connection string de Neon (dashboard de Neon → el proyecto → Connection Details) |
 | `GOOGLE_VERTEX_PROJECT` | El project id de GCP (consola de GCP, o `gcloud config get-value project`) |
-| `GOOGLE_VERTEX_CREDENTIALS_JSON` | El contenido completo del JSON de la service account de Vertex AI (la misma que ya se usa localmente vía `GOOGLE_APPLICATION_CREDENTIALS` en `.env.local` — abrir ese archivo y pegar el JSON tal cual) |
+| `GOOGLE_VERTEX_CREDENTIALS_JSON` | El contenido completo del JSON de la service account de Vertex AI (la misma que ya se usa localmente vía `GOOGLE_APPLICATION_CREDENTIALS` en `.env.local`, abrir ese archivo y pegar el JSON tal cual) |
 
 **El redteam (`evals/redteam.yaml`) sigue siendo manual, no está en CI.**
 El plugin `indirect-prompt-injection` exige `promptfoo auth login`
 interactivo contra el servicio remoto de Promptfoo, que no tiene
-alternativa no-interactiva — no hay forma limpia de automatizarlo en un
+alternativa no-interactiva, no hay forma limpia de automatizarlo en un
 runner de CI sin TTY.

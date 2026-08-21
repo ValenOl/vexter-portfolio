@@ -1,6 +1,6 @@
-# Skill Registry — vexter-portfolio
+# Skill Registry, vexter-portfolio
 
-Infraestructura SDD (mode-independent). Escaneado 2026-08-19. Ningún `AGENTS.md`/`CLAUDE.md` a nivel de proyecto todavía — aplica el `~/.claude/CLAUDE.md` global (protocolo Engram, Agent Teams Lite, reglas de commits/build/CLI tools).
+Infraestructura SDD (mode-independent). Escaneado 2026-08-19. Ningún `AGENTS.md`/`CLAUDE.md` a nivel de proyecto todavía, aplica el `~/.claude/CLAUDE.md` global (protocolo Engram, Agent Teams Lite, reglas de commits/build/CLI tools).
 
 ## SDD (workflow de este proyecto)
 | Skill | Trigger |
@@ -18,7 +18,7 @@ Infraestructura SDD (mode-independent). Escaneado 2026-08-19. Ningún `AGENTS.md
 | Skill | Trigger |
 |---|---|
 | claude-api | Dudas de API/SDK de Claude, tool use, MCP, caching |
-| vercel:ai-sdk | Vercel AI SDK — tool calling, streaming, structured output (mismo SDK que Vexter) |
+| vercel:ai-sdk | Vercel AI SDK, tool calling, streaming, structured output (mismo SDK que Vexter) |
 | vercel:nextjs | App Router, Server Actions, Server Components |
 | geo (familia) | Si en algún punto el producto necesita visibilidad SEO/AI-search |
 
@@ -35,8 +35,8 @@ Infraestructura SDD (mode-independent). Escaneado 2026-08-19. Ningún `AGENTS.md
 ## Memoria
 | Skill | Trigger |
 |---|---|
-| engram:memory | SIEMPRE ACTIVO — guardar decisiones/bugs/discoveries proactivamente |
+| engram:memory | SIEMPRE ACTIVO, guardar decisiones/bugs/discoveries proactivamente |
 
 ## No aplican a este proyecto (visto pero descartado)
-- Familia `geo-*` de auditoría (SEO agencia) — no es el foco del producto en sí, solo la entrada genérica de arriba si hiciera falta.
-- Familia `vercel:vercel-*` de infra pesada (firewall, sandbox, microfrontends) — proyecto chico de portfolio, no ameritan todavía.
+- Familia `geo-*` de auditoría (SEO agencia), no es el foco del producto en sí, solo la entrada genérica de arriba si hiciera falta.
+- Familia `vercel:vercel-*` de infra pesada (firewall, sandbox, microfrontends), proyecto chico de portfolio, no ameritan todavía.
