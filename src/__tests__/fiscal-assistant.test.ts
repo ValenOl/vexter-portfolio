@@ -21,6 +21,14 @@ vi.mock('@/lib/rag/retrieve', () => ({
   retrieveNormativa: vi.fn(),
 }))
 
+// Observabilidad de guardrails (GuardrailEvent): mockeado para no pegarle a
+// una DB real en el test unitario, mismo patrón que retrieve.test.ts. El
+// logging es fire-and-forget con try/catch adentro (ver logGuardrailEvent
+// en fiscal-assistant.ts), así que un mock que no rechaza nunca alcanza.
+vi.mock('@/lib/prisma', () => ({
+  prisma: { guardrailEvent: { create: vi.fn() } },
+}))
+
 import { retrieveNormativa } from '@/lib/rag/retrieve'
 import { askFiscalAssistant, continueFiscalAssistant } from '../lib/ai/fiscal-assistant'
 

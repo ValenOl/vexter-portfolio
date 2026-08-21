@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai'
 import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
 import { retrieveNormativa, type NormativaMatch } from '@/lib/rag/retrieve'
 import { vertex } from './vertex-client'
 
@@ -79,6 +80,28 @@ ${contexto}
 PREGUNTA DEL USUARIO: ${pregunta}`
 }
 
+// Observabilidad de guardrails (ver schema.prisma, GuardrailEvent): loggea
+// CADA decisión final, dispare o no un guardrail -- el objetivo es poder
+// mostrar evidencia real de que los guardrails corren en cada request, no
+// solo confiar en que "deberían". Nunca debe romper la respuesta al
+// usuario: un fallo de Neon acá se loggea a consola y se descarta, no se
+// propaga (mismo criterio que la inestabilidad de Neon ya documentada en
+// el redteam-report).
+async function logGuardrailEvent(event: {
+  origen: 'inicial' | 'continuacion'
+  textoEvaluado: string
+  outcome: FiscalOutcome['status']
+  guardrailTriggered: 'sin_retrieval' | 'sin_citacion' | 'grounding_fallido' | null
+  fichasDisponibles: number
+  fichasCitadas: string[]
+}): Promise<void> {
+  try {
+    await prisma.guardrailEvent.create({ data: event })
+  } catch (err) {
+    console.error('[guardrail-event] no se pudo loggear:', err)
+  }
+}
+
 type StepResult =
   | { status: 'done'; respuesta: string; fichasCitadas: string[] }
   | { status: 'needs_input'; question: string; toolCallId: string }
@@ -126,6 +149,14 @@ export async function askFiscalAssistant(pregunta: string): Promise<FiscalOutcom
   const fichas = await retrieveNormativa(pregunta)
 
   if (fichas.length === 0) {
+    await logGuardrailEvent({
+      origen: 'inicial',
+      textoEvaluado: pregunta,
+      outcome: 'sin_fuente',
+      guardrailTriggered: 'sin_retrieval',
+      fichasDisponibles: 0,
+      fichasCitadas: [],
+    })
     return { status: 'sin_fuente' }
   }
 
@@ -133,7 +164,7 @@ export async function askFiscalAssistant(pregunta: string): Promise<FiscalOutcom
   const messages: ModelMessage[] = [{ role: 'user', content: buildFiscalPrompt(pregunta, fichas) }]
   const { result, responseMessages } = await runFiscalAssistantStep(messages, tools)
 
-  return await finalizeOutcome(result, [...messages, ...responseMessages], fichas)
+  return await finalizeOutcome(result, [...messages, ...responseMessages], fichas, 'inicial', pregunta)
 }
 
 // Retoma una conversación pausada en 'needs_input' -- mismo patrón que
@@ -154,7 +185,7 @@ export async function continueFiscalAssistant(
   const tools = await createFiscalAssistantTools()
   const { result, responseMessages } = await runFiscalAssistantStep(messages, tools)
 
-  return await finalizeOutcome(result, [...messages, ...responseMessages], state.fichas)
+  return await finalizeOutcome(result, [...messages, ...responseMessages], state.fichas, 'continuacion', answer)
 }
 
 // Segundo guardrail, ADICIONAL al de "fuentesUsadas vacío" (hallazgo real
@@ -205,8 +236,22 @@ La pregunta clave para cada dato de la respuesta: ¿es un número/regla que est�
 // (la más vieja) entre las fichas efectivamente citadas -- ver spec,
 // "Fecha de corte visible": nunca mostrar una fecha más nueva de lo que
 // realmente se verificó.
-async function finalizeOutcome(step: StepResult, allMessages: ModelMessage[], fichasDisponibles: NormativaMatch[]): Promise<FiscalOutcome> {
+async function finalizeOutcome(
+  step: StepResult,
+  allMessages: ModelMessage[],
+  fichasDisponibles: NormativaMatch[],
+  origen: 'inicial' | 'continuacion',
+  textoEvaluado: string
+): Promise<FiscalOutcome> {
   if (step.status === 'needs_input') {
+    await logGuardrailEvent({
+      origen,
+      textoEvaluado,
+      outcome: 'needs_input',
+      guardrailTriggered: null,
+      fichasDisponibles: fichasDisponibles.length,
+      fichasCitadas: [],
+    })
     return { status: 'needs_input', question: step.question, toolCallId: step.toolCallId, state: { messages: allMessages, fichas: fichasDisponibles } }
   }
 
@@ -219,15 +264,40 @@ async function finalizeOutcome(step: StepResult, allMessages: ModelMessage[], fi
   // modelo se autocorrija, forzamos sin_fuente en código. Nunca se
   // devuelve 'done' con fuentesUsadas vacío.
   if (citadas.length === 0) {
+    await logGuardrailEvent({
+      origen,
+      textoEvaluado,
+      outcome: 'sin_fuente',
+      guardrailTriggered: 'sin_citacion',
+      fichasDisponibles: fichasDisponibles.length,
+      fichasCitadas: step.fichasCitadas,
+    })
     return { status: 'sin_fuente' }
   }
 
   const respaldado = await verificarGrounding(step.respuesta, citadas)
   if (!respaldado) {
+    await logGuardrailEvent({
+      origen,
+      textoEvaluado,
+      outcome: 'sin_fuente',
+      guardrailTriggered: 'grounding_fallido',
+      fichasDisponibles: fichasDisponibles.length,
+      fichasCitadas: citadas.map((f) => f.ficha),
+    })
     return { status: 'sin_fuente' }
   }
 
   const fechaCorte = new Date(Math.min(...citadas.map((f) => f.fechaCorte.getTime()))).toISOString().slice(0, 10)
+
+  await logGuardrailEvent({
+    origen,
+    textoEvaluado,
+    outcome: 'done',
+    guardrailTriggered: null,
+    fichasDisponibles: fichasDisponibles.length,
+    fichasCitadas: citadas.map((f) => f.ficha),
+  })
 
   return { status: 'done', respuesta: step.respuesta, fuentesUsadas: citadas.map((f) => f.ficha), fechaCorte }
 }

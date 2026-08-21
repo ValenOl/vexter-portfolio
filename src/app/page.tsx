@@ -159,6 +159,10 @@ const ABOUT_POINTS = [
     label: 'CI/CD con evals automáticos',
     detail: 'Tests unitarios + evals funcionales corriendo en GitHub Actions en cada push, no solo checkeados a mano.',
   },
+  {
+    label: 'Observabilidad de guardrails',
+    detail: 'Cada decisión final del asistente queda registrada en Neon: qué guardrail intervino y por qué. Trazas reales, no solo texto en un reporte.',
+  },
 ]
 
 function Shell({ children }: { children: ReactNode }) {
@@ -219,14 +223,22 @@ function Shell({ children }: { children: ReactNode }) {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="https://github.com/ValenOl/vexter-portfolio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-[color:var(--brand)] hover:underline"
-                >
-                  Ver código y CI en GitHub <IconArrow />
-                </a>
+                <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <a
+                    href="https://github.com/ValenOl/vexter-portfolio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-[color:var(--brand)] hover:underline"
+                  >
+                    Ver código y CI en GitHub <IconArrow />
+                  </a>
+                  <a
+                    href="/trazas"
+                    className="flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-[color:var(--brand)] hover:underline"
+                  >
+                    Ver trazas de guardrails en vivo <IconArrow />
+                  </a>
+                </div>
               </div>
             </motion.div>
           )}

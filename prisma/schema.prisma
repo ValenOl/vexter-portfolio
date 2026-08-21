@@ -30,3 +30,22 @@ model NormativaChunk {
 
   @@map("normativa_chunks")
 }
+
+// Observabilidad de guardrails (portfolio): una fila por decisión final del
+// asistente, sea que dispare o no un guardrail. Objetivo: convertir "confío
+// en que los guardrails funcionan" en evidencia consultable, no solo texto
+// en openspec/redteam-report.md. Loggeada desde finalizeOutcome (único
+// punto donde convergen ambos turnos del wizard, ver fiscal-assistant.ts) y
+// desde el early-return de retrieval vacío en askFiscalAssistant.
+model GuardrailEvent {
+  id                 String   @id @default(cuid())
+  origen             String // 'inicial' | 'continuacion' (pregunta vs respuesta a askUser)
+  textoEvaluado      String   @map("texto_evaluado")
+  outcome            String // 'done' | 'needs_input' | 'sin_fuente'
+  guardrailTriggered String?  @map("guardrail_triggered") // null | 'sin_retrieval' | 'sin_citacion' | 'grounding_fallido'
+  fichasDisponibles  Int      @default(0) @map("fichas_disponibles")
+  fichasCitadas      String[] @map("fichas_citadas")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("guardrail_events")
+}
