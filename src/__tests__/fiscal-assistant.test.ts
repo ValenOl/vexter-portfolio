@@ -42,6 +42,14 @@ const FICHA_FACTURA_C = {
   score: 0.92,
 }
 
+const FICHA_RECATEGORIZACION = {
+  ficha: 'recategorizacion',
+  norma: 'RG 4309/2018',
+  contenido: 'La recategorización se hace dos veces por año...',
+  fechaCorte: new Date('2026-06-01'), // más vieja que FICHA_FACTURA_C a propósito
+  score: 0.7,
+}
+
 describe('askFiscalAssistant', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -76,6 +84,29 @@ describe('askFiscalAssistant', () => {
       respuesta: 'La factura C es la que emiten los monotributistas.',
       fuentesUsadas: ['factura-c'],
       fechaCorte: '2026-08-19',
+    })
+  })
+
+  it('usa la fecha de corte más CONSERVADORA (la más vieja) cuando cita dos fichas con fechas distintas', async () => {
+    mockRetrieve.mockResolvedValue([FICHA_FACTURA_C, FICHA_RECATEGORIZACION])
+    mockGenerateText
+      .mockResolvedValueOnce({
+        staticToolCalls: [],
+        response: { messages: [{ role: 'assistant', content: 'ok' }] },
+        output: {
+          respuesta: 'Respuesta que combina ambas fichas.',
+          fichasCitadas: ['factura-c', 'recategorizacion'],
+        },
+      })
+      .mockResolvedValueOnce({ output: { respaldado: true } })
+
+    const outcome = await askFiscalAssistant('pregunta que cruza dos fichas')
+
+    expect(outcome).toEqual({
+      status: 'done',
+      respuesta: 'Respuesta que combina ambas fichas.',
+      fuentesUsadas: ['factura-c', 'recategorizacion'],
+      fechaCorte: '2026-06-01', // la de FICHA_RECATEGORIZACION, no la de FICHA_FACTURA_C
     })
   })
 
