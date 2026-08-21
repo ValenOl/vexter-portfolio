@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 
 export const metadata: Metadata = {
@@ -61,9 +62,9 @@ export default async function TrazasPage() {
         <div className="flex items-center gap-2.5">
           <span className="text-[15px] font-semibold tracking-tight">Trazas de guardrails</span>
         </div>
-        <a href="/" className="text-[12.5px] font-medium text-[color:var(--brand)] hover:underline">
+        <Link href="/" className="text-[12.5px] font-medium text-[color:var(--brand)] hover:underline">
           ← Volver al asistente
-        </a>
+        </Link>
       </div>
 
       <div className="relative z-10 mx-6 mt-5 flex items-start gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 sm:mx-14">
