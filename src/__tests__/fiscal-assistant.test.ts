@@ -117,7 +117,8 @@ describe('continueFiscalAssistant', () => {
     vi.clearAllMocks()
   })
 
-  it('retoma tras askUser y termina en done, usando las fichas que ya venían en el state', async () => {
+  it('retoma tras askUser y termina en done, sin fichas nuevas del segundo retrieval', async () => {
+    mockRetrieve.mockResolvedValue([]) // segundo retrieval no encuentra nada nuevo
     mockGenerateText
       .mockResolvedValueOnce({
         staticToolCalls: [],
@@ -126,7 +127,7 @@ describe('continueFiscalAssistant', () => {
       })
       .mockResolvedValueOnce({ output: { respaldado: true } })
 
-    const state = { messages: [{ role: 'user' as const, content: 'pregunta original' }], fichas: [FICHA_FACTURA_C] }
+    const state = { messages: [{ role: 'user' as const, content: 'pregunta original' }], fichas: [FICHA_FACTURA_C], pregunta: '¿me toca recategorizar?' }
     const outcome = await continueFiscalAssistant(state, 'call-1', '$5.000.000 al año')
 
     expect(outcome).toEqual({
@@ -135,8 +136,32 @@ describe('continueFiscalAssistant', () => {
       fuentesUsadas: ['factura-c'],
       fechaCorte: '2026-08-19',
     })
-    // retrieveNormativa NO se vuelve a llamar al retomar -- las fichas
-    // viajan en el state.
-    expect(retrieveNormativa).not.toHaveBeenCalled()
+  })
+
+  it('regresión 2026-08-21: re-consulta el RAG con pregunta+respuesta y usa una ficha que el retrieval inicial no había traído', async () => {
+    const FICHA_TOPES = {
+      ficha: 'categorias-monotributo',
+      norma: 'RG 4309/2018',
+      contenido: 'Categoría C: tope de $24.670.494,31 anuales.',
+      fechaCorte: new Date('2026-08-19'),
+      score: 0.63,
+    }
+    mockRetrieve.mockResolvedValue([FICHA_TOPES]) // el segundo retrieval SÍ encuentra la ficha de topes
+    mockGenerateText
+      .mockResolvedValueOnce({
+        staticToolCalls: [],
+        response: { messages: [{ role: 'assistant', content: 'ok' }] },
+        output: { respuesta: 'Facturaste por debajo del tope de la categoría C, no te toca recategorizar.', fichasCitadas: ['categorias-monotributo'] },
+      })
+      .mockResolvedValueOnce({ output: { respaldado: true } })
+
+    const state = { messages: [{ role: 'user' as const, content: 'pregunta original' }], fichas: [], pregunta: '¿me toca recategorizar este semestre?' }
+    const outcome = await continueFiscalAssistant(state, 'call-1', 'Facturé $8.000.000 en los últimos 12 meses, categoría actual C')
+
+    expect(retrieveNormativa).toHaveBeenCalledWith('¿me toca recategorizar este semestre? Facturé $8.000.000 en los últimos 12 meses, categoría actual C')
+    expect(outcome.status).toBe('done')
+    if (outcome.status === 'done') {
+      expect(outcome.fuentesUsadas).toEqual(['categorias-monotributo'])
+    }
   })
 })

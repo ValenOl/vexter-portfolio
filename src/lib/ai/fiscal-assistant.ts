@@ -17,8 +17,11 @@ export type AskUserOption = { label: string; value: string }
 
 // Incluye las fichas usadas en la pausa (no solo los messages) -- así
 // continueFiscalAssistant no depende de que el cliente vuelva a mandarlas
-// por separado, ni de re-correr el retrieval al retomar.
-export type SerializedState = { messages: ModelMessage[]; fichas: NormativaMatch[] }
+// por separado. También incluye la pregunta original en texto plano --
+// vive embebida dentro del prompt armado en `messages`, pero de ahí no se
+// puede recuperar limpia, y continueFiscalAssistant la necesita para
+// re-consultar el RAG (ver comentario en continueFiscalAssistant).
+export type SerializedState = { messages: ModelMessage[]; fichas: NormativaMatch[]; pregunta: string }
 
 // Unión discriminada por "status", igual razón que ParseOutcome en Vexter:
 // el caso 'sin_fuente' es una rama DISTINTA de 'done', no un 'done' con
@@ -119,6 +122,11 @@ async function runFiscalAssistantStep(
     tools,
     output: Output.object({ schema: respuestaSchema }),
     stopWhen: stepCountIs(5),
+    // temperature 0 -- hallazgo real 2026-08-21: sin esto el modelo
+    // variaba entre correr askUser o responder directo para la misma
+    // pregunta, causando el "eval flaky" documentado. Este es un
+    // asistente informativo, no creativo, no hay motivo para variabilidad.
+    temperature: 0,
     messages,
   })
 
@@ -164,7 +172,7 @@ export async function askFiscalAssistant(pregunta: string): Promise<FiscalOutcom
   const messages: ModelMessage[] = [{ role: 'user', content: buildFiscalPrompt(pregunta, fichas) }]
   const { result, responseMessages } = await runFiscalAssistantStep(messages, tools)
 
-  return await finalizeOutcome(result, [...messages, ...responseMessages], fichas, 'inicial', pregunta)
+  return await finalizeOutcome(result, [...messages, ...responseMessages], fichas, 'inicial', pregunta, pregunta)
 }
 
 // Retoma una conversación pausada en 'needs_input' -- mismo patrón que
@@ -176,16 +184,40 @@ export async function continueFiscalAssistant(
   toolCallId: string,
   answer: string
 ): Promise<FiscalOutcome> {
+  // Segundo retrieval, hallazgo real 2026-08-21: el primer retrieval corre
+  // ANTES de que el humano dé su dato personal (ej. "categoría actual C"),
+  // así que una ficha solo relevante una vez conocido ese dato (ej. los
+  // topes de facturación por categoría) puede no entrar en el top-K
+  // inicial. Se re-consulta el RAG con pregunta + respuesta combinadas, y
+  // solo se agregan al contexto las fichas NUEVAS (no reemplaza las
+  // originales, evita perder lo ya recuperado).
+  const fichasAdicionales = (await retrieveNormativa(`${state.pregunta} ${answer}`)).filter(
+    (nueva) => !state.fichas.some((existente) => existente.ficha === nueva.ficha)
+  )
+  const fichasDisponibles = [...state.fichas, ...fichasAdicionales]
+
+  const contextoAdicionalMessage: ModelMessage | null =
+    fichasAdicionales.length > 0
+      ? {
+          role: 'user',
+          content: `Información adicional de las fichas, ahora relevante con el dato que diste:\n\n${fichasAdicionales
+            .map((f) => `### Ficha: ${f.ficha}\nNorma: ${f.norma}\n\n${f.contenido}`)
+            .join('\n\n---\n\n')}`,
+        }
+      : null
+
   const toolResultMessage: ModelMessage = {
     role: 'tool',
     content: [{ type: 'tool-result', toolCallId, toolName: 'askUser', output: { type: 'text', value: answer } }],
   }
 
-  const messages = [...state.messages, toolResultMessage]
+  const messages = contextoAdicionalMessage
+    ? [...state.messages, toolResultMessage, contextoAdicionalMessage]
+    : [...state.messages, toolResultMessage]
   const tools = await createFiscalAssistantTools()
   const { result, responseMessages } = await runFiscalAssistantStep(messages, tools)
 
-  return await finalizeOutcome(result, [...messages, ...responseMessages], state.fichas, 'continuacion', answer)
+  return await finalizeOutcome(result, [...messages, ...responseMessages], fichasDisponibles, 'continuacion', answer, state.pregunta)
 }
 
 // Segundo guardrail, ADICIONAL al de "fuentesUsadas vacío" (hallazgo real
@@ -214,17 +246,26 @@ AFIRMACIÓN A VERIFICAR:
 
 ${respuesta}
 
-Evaluá cada afirmación relevante de la respuesta contra el texto fuente. Hay dos categorías distintas:
+Evaluá cada afirmación relevante de la respuesta contra el texto fuente. Antes de nada, distinguí DOS tipos de cifra que pueden aparecer en la respuesta:
 
-PERMITIDO (respaldado: true si es de este tipo): cálculos o comparaciones aritméticas directas hechas SOBRE cifras que sí están en el texto fuente -- sumas, restas, "¿X es mayor o menor que Y?", o cualquier conclusión que se derive matemáticamente de números presentes en la fuente. Ejemplo: si la fuente dice "el tope de la categoría C es $Y" y la respuesta dice "facturaste $X, que supera/no supera el tope de tu categoría", eso es inferencia legítima sobre datos reales, no fabricación.
+1. DATO DE ENTRADA del usuario (ej. "facturaste $8.000.000"): un monto, fecha o cantidad que el usuario aportó sobre sí mismo en la conversación. NO tiene que estar en el texto fuente -- por definición nunca va a estar, es información personal del usuario, no normativa. Nunca marques respaldado: false solo porque este tipo de cifra no aparece en la fuente.
+2. REGLA o TOPE normativo (ej. "el tope de la categoría C es $Y", "se puede exceder el límite un 50%"): esto SÍ tiene que aparecer literalmente en el texto fuente. Si la respuesta afirma una regla, tope, porcentaje o excepción que el texto fuente no dice, es fabricación.
 
-PROHIBIDO (respaldado: false): cualquier cifra, tope, porcentaje, excepción o regla normativa que NO aparece en el texto fuente y que tampoco es una combinación aritmética de números que sí aparecen ahí. Una regla completamente ajena a la fuente (inventada) cae siempre acá, aunque esté redactada con confianza.
+Con esa distinción, hay dos categorías de evaluación:
 
-La pregunta clave para cada dato de la respuesta: ¿es un número/regla que está literalmente en la fuente, o el resultado de una operación aritmética verificable sobre números de la fuente? Si la respuesta a ambas es no, es false.`
+PERMITIDO (respaldado: true si es de este tipo): una comparación o cálculo aritmético entre un dato de entrada del usuario (tipo 1, no necesita estar en la fuente) y una regla/tope que SÍ está en la fuente (tipo 2). Ejemplo: la fuente dice "el tope de la categoría C es $24.670.494,31" y la respuesta dice "facturaste $8.000.000, que está por debajo del tope de tu categoría" -- el tope viene de la fuente, el monto facturado es dato de entrada del usuario, la comparación es legítima.
+
+PROHIBIDO (respaldado: false): cualquier regla, tope, porcentaje o excepción (tipo 2) que NO aparece en el texto fuente, sea que se presente sola o mezclada con datos de entrada del usuario. Una regla completamente ajena a la fuente (inventada) cae siempre acá, aunque esté redactada con confianza.
+
+La pregunta clave para cada afirmación de la respuesta: si es una REGLA o TOPE, ¿está literalmente en la fuente? Si no está, es false. Si es un DATO DE ENTRADA del usuario, no evalúes si está en la fuente -- evaluá solo si la regla/tope contra la que se compara sí lo está.`
 
   const result = await generateText({
     model: vertex.languageModel(MODEL),
     output: Output.object({ schema: groundingSchema }),
+    // temperature 0 -- mismo motivo que en runFiscalAssistantStep: un
+    // guardrail de seguridad tiene que ser consistente, no puede variar
+    // su veredicto entre corridas para la misma entrada.
+    temperature: 0,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -241,7 +282,8 @@ async function finalizeOutcome(
   allMessages: ModelMessage[],
   fichasDisponibles: NormativaMatch[],
   origen: 'inicial' | 'continuacion',
-  textoEvaluado: string
+  textoEvaluado: string,
+  pregunta: string
 ): Promise<FiscalOutcome> {
   if (step.status === 'needs_input') {
     await logGuardrailEvent({
@@ -252,7 +294,7 @@ async function finalizeOutcome(
       fichasDisponibles: fichasDisponibles.length,
       fichasCitadas: [],
     })
-    return { status: 'needs_input', question: step.question, toolCallId: step.toolCallId, state: { messages: allMessages, fichas: fichasDisponibles } }
+    return { status: 'needs_input', question: step.question, toolCallId: step.toolCallId, state: { messages: allMessages, fichas: fichasDisponibles, pregunta } }
   }
 
   const citadas = fichasDisponibles.filter((f) => step.fichasCitadas.includes(f.ficha))
