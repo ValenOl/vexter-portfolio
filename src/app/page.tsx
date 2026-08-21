@@ -127,7 +127,43 @@ function IconHash() {
   )
 }
 
+function IconChevron({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.2, ease: EASE_CALM }}
+    >
+      <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </motion.svg>
+  )
+}
+
+const ABOUT_POINTS = [
+  {
+    label: 'RAG con grounding estricto',
+    detail: 'El retrieval corre determinísticamente contra un corpus curado de normativa AFIP/ARCA. Si no encuentra respaldo, el sistema admite el límite en vez de inventar.',
+  },
+  {
+    label: 'Human-in-the-loop',
+    detail: 'El asistente nunca asume un dato personal (categoría, facturación real) — siempre lo pregunta antes de responder.',
+  },
+  {
+    label: 'Redteam de seguridad real',
+    detail: 'Probado contra indirect prompt injection (Promptfoo). Se encontraron 2 vulnerabilidades reales y se cerraron con un guardrail determinístico en código, no un parche de prompt.',
+  },
+  {
+    label: 'CI/CD con evals automáticos',
+    detail: 'Tests unitarios + evals funcionales corriendo en GitHub Actions en cada push, no solo checkeados a mano.',
+  },
+]
+
 function Shell({ children }: { children: ReactNode }) {
+  const [aboutOpen, setAboutOpen] = useState(false)
+
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--bg)]">
       <div className="bg-aurora" aria-hidden />
@@ -144,12 +180,57 @@ function Shell({ children }: { children: ReactNode }) {
         </span>
       </div>
 
-      <div className="relative z-10 mx-6 mt-5 flex items-start gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 sm:mx-14">
-        <IconInfo />
-        <p className="text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
-          Portfolio piece — respuestas grounded en un corpus curado, no un asesor real. Ante dudas reales, consultá con un
-          contador.
-        </p>
+      <div className="relative z-10 mx-6 mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] sm:mx-14">
+        <div className="flex items-start gap-2.5 p-3">
+          <IconInfo />
+          <p className="flex-1 text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
+            Portfolio piece — respuestas grounded en un corpus curado, no un asesor real. Ante dudas reales, consultá con
+            un contador.
+          </p>
+          <button
+            type="button"
+            onClick={() => setAboutOpen((v) => !v)}
+            className="flex shrink-0 items-center gap-1 text-[12.5px] font-medium whitespace-nowrap text-[color:var(--brand)] hover:underline"
+          >
+            ¿Qué es este proyecto?
+            <IconChevron open={aboutOpen} />
+          </button>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {aboutOpen && (
+            <motion.div
+              key="about"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: EASE_CALM }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-col gap-3 border-t border-[var(--border)] p-4">
+                <p className="text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
+                  Pieza de portfolio para mostrar cómo diseño e implemento agentes de IA en producción — no solo que
+                  &quot;responden&quot;, sino que son verificables y seguros:
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {ABOUT_POINTS.map((point) => (
+                    <li key={point.label} className="text-[12.5px] leading-relaxed text-[color:var(--fg-muted)]">
+                      <span className="font-semibold text-[var(--fg)]">{point.label}.</span> {point.detail}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="https://github.com/ValenOl/vexter-portfolio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-[color:var(--brand)] hover:underline"
+                >
+                  Ver código y CI en GitHub <IconArrow />
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="relative z-10 flex flex-1 justify-center px-6 py-14 sm:px-14 sm:py-16">
